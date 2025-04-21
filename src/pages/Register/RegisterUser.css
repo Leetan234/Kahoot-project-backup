@@ -1,0 +1,25 @@
+.register-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 100px;
+    background-color: #f8f8f8;
+    height: 100vh;
+  }
+  
+  .register-title {
+    margin-bottom: 24px;
+  }
+  
+  .register-box {
+    background-color: white;
+    padding: 32px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    width: 400px;
+    max-width: 90%;
+  }
+  
+  .register-label {
+    margin-bottom: 12px;
+  }
