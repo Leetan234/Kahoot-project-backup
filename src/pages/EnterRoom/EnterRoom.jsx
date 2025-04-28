@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Input, Button, Layout, ConfigProvider, Modal, message } from 'antd';
-import { useNavigate } from 'react-router-dom'; 
-import axios from 'axios'; // Import axios
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import '../EnterRoom/EnterRoom.css';
 
 const { Content } = Layout;
@@ -9,38 +9,23 @@ const { Content } = Layout;
 const EnterroomPage = () => {
   const [gamePin, setGamePin] = useState('');
   const [nickname, setNickname] = useState('');
-  const [isNameModalVisible, setIsNameModalVisible] = useState(false); // Modal nhập tên người chơi
-  const [sessionId, setSessionId] = useState(null); // Lưu sessionId
-  const navigate = useNavigate(); // Dùng hook để điều hướng đến lobby
-  
+  const [isNameModalVisible, setIsNameModalVisible] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+  const navigate = useNavigate();
 
-  const fetchSessionId = async (pin) => {
+  const handleEnter = async () => {
+    if (!gamePin) {
+      message.warning('Vui lòng nhập Game PIN!');
+      return;
+    }
+
     try {
-      // Gửi yêu cầu lấy thông tin game session với game pin
-      const response = await axios.get(`https://localhost:7153/api/gamesession/GetGameSessionWithPin/${pin}`);
-  
+      const response = await axios.get(`https://localhost:7153/api/gamesession/GetGameSessionWithPin/${gamePin}`);
+
       if (response.data?.statusCode === 200 && response.data?.data) {
-        // Lấy sessionId và các thông tin khác từ dữ liệu trả về
-        const { sessionId, quizId, status, pin, enableSpeedBonus, enableStreak, gameMode, maxPlayers, autoAdvance, showLeaderboard, loadingInGame } = response.data.data;
-  
-        // Lưu sessionId vào state
-        setSessionId(sessionId);
-  
-        // Lưu các thông tin khác (nếu cần)
-        console.log('Game session details:', {
-          sessionId,
-          quizId,
-          status,
-          pin,
-          enableSpeedBonus,
-          enableStreak,
-          gameMode,
-          maxPlayers,
-          autoAdvance,
-          showLeaderboard,
-          loadingInGame
-        });
-  
+        const { sessionId: fetchedSessionId } = response.data.data;
+        setSessionId(fetchedSessionId);
+        setIsNameModalVisible(true); // 👉 Mở modal NGAY sau khi lấy session thành công
       } else {
         message.error('Không tìm thấy game với PIN này!');
       }
@@ -49,54 +34,24 @@ const EnterroomPage = () => {
       message.error('Có lỗi xảy ra khi lấy thông tin game!');
     }
   };
-  
 
-  const handleEnter = async () => {
-    if (!gamePin) {
-      message.warning('Vui lòng nhập Game PIN!');
-      return;
-    }
-  
-    // Lấy sessionId từ API
-    await fetchSessionId(gamePin);
-  
-    if (sessionId) {
-      // Hiển thị modal để nhập tên người chơi
-      setIsNameModalVisible(true);
-    }
-  };
-  
-  const handleNameModalOk = async () => {
+  const handleNameModalOk = () => {
     if (!nickname) {
       message.warning('Vui lòng nhập tên người chơi!');
       return;
     }
-  
+
     if (!sessionId) {
       message.error('Không có sessionId hợp lệ!');
       return;
     }
-  
-    try {
-      const response = await axios.post('https://localhost:7153/api/player/CreatePlayer', {
-        sessionId: sessionId, // Sử dụng sessionId lấy từ API
-        nickname: nickname,
-      });
-      console.log('Player created:', response.data);
-  
-      setIsNameModalVisible(false);
-      // Chuyển hướng đến lobby với gamePin và nickname
-      navigate(`/lobby/${gamePin}`, { state: { gamePin, nickname } });
-    } catch (error) {
-      console.error('Error creating player:', error);
-      message.error('Đã có lỗi xảy ra: ' + (error.response ? error.response.data : error.message));
-    }
-  };
-  
 
-  // Xử lý khi đóng modal
+    setIsNameModalVisible(false);
+    navigate(`/lobby/${gamePin}`, { state: { gamePin, nickname } });
+  };
+
   const handleNameModalCancel = () => {
-    setIsNameModalVisible(false); // Đóng modal
+    setIsNameModalVisible(false);
   };
 
   return (
@@ -111,14 +66,14 @@ const EnterroomPage = () => {
               size="large"
               className="pin-input"
               value={gamePin}
-              onChange={(e) => setGamePin(e.target.value)} // Cập nhật giá trị Game PIN
+              onChange={(e) => setGamePin(e.target.value)}
             />
             <Button
               type="primary"
               size="large"
               block
               className="enter-button"
-              onClick={handleEnter} // Khi nhấn vào nút Enter
+              onClick={handleEnter}
             >
               Enter
             </Button>
@@ -128,7 +83,7 @@ const EnterroomPage = () => {
 
       <Modal
         title="Nhập Tên Người Chơi"
-        visible={isNameModalVisible}
+        open={isNameModalVisible} // 🛠 dùng `open` thay vì `visible`
         onOk={handleNameModalOk}
         onCancel={handleNameModalCancel}
         okText="Tham gia"

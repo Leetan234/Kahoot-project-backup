@@ -8,6 +8,8 @@ import EmailRegisterPage from "../pages/Register/RegisterMail";
 import QuestionPage from "../pages/QuestionPage/QuestionPage";
 import Host from "../pages/Host/Host";
 import HostQuestionPage from "../pages/HostQuestion/HostQuestionPage";
+import Leaderboard from "../pages/leaderboard/leaderboard";
+
 const AppRouter = () => {
     return (
         <Router>
@@ -18,8 +20,9 @@ const AppRouter = () => {
                 <Route path="/enter-room" element={<EnterroomtPage />} />
                 <Route path="/lobby/:gamePin" element={<Lobby  />} />
                 <Route path="/host/:gamePin" element={<Host />} />
-                <Route path="/QuestionPage/:sessionId/:QuestionID" element={<QuestionPage />} />
-                <Route path="/HostQuestionPage/:sessionId/:QuestionID" element={<HostQuestionPage />} />
+                <Route path="/QuestionPage/:sessionId/:questionInGameId" element={<QuestionPage />} />
+                <Route path="/HostQuestionPage/:sessionId/:QuestionInGameID" element={<HostQuestionPage />} />
+                <Route path="/leaderboard" element={<Leaderboard />} />
                 <Route path="/register/username" element={<RegisterPage />} />
                 <Route path="/register/signup-options" element={<EmailRegisterPage />} />
             </Routes>

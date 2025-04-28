@@ -1,142 +1,143 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button, Typography, List, Card, message, Modal } from 'antd';
-import axios from 'axios'; // Import axios
-import { useLocation } from 'react-router-dom'; // To access the gamePin and nickname
+import { List, Card, message, Modal } from 'antd';
+import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
+import { useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import '../Lobby/Lobby.css';
-import { createConnection } from '../../signalRConnection';
-import { useNavigate } from 'react-router-dom';
-
-const { Title } = Typography;
 
 const Lobby = () => {
   const { state } = useLocation();
-  const [gamePin, setGamePin] = useState(state?.gamePin || '123456');
-  const [nickname, setNickname] = useState(state?.nickname || 'Dev Tester');
+  const [gamePin] = useState(state?.gamePin || '');
+  const [nickname] = useState(state?.nickname || '');
   const [players, setPlayers] = useState([]);
   const [newPlayer, setNewPlayer] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [sessionId, setSessionId] = useState(null);  // Add state to store sessionId
+  const [sessionId, setSessionId] = useState(null);
 
+  const connectionRef = useRef(null);
+  const hasJoinedRef = useRef(false);
   const prevPlayersRef = useRef([]);
   const navigate = useNavigate();
 
-  // Fetch the game session to get the sessionId
+  // 1) Lấy sessionId
   useEffect(() => {
     if (!gamePin) return;
-
-    const fetchGameSession = async () => {
-      try {
-        const response = await axios.get(`https://localhost:7153/api/gamesession/GetGameSessionWithPin/${gamePin}`);
-        if (response.data?.statusCode === 200) {
-          const { sessionId } = response.data.data;  // Assuming sessionId is in the response
-          setSessionId(sessionId);  // Store the sessionId
+    axios
+      .get(`https://localhost:7153/api/gamesession/GetGameSessionWithPin/${gamePin}`)
+      .then(res => {
+        if (res.data?.statusCode === 200) {
+          setSessionId(res.data.data.sessionId);
         } else {
-          message.error('Không thể lấy thông tin phiên trò chơi!');
+          message.error('Cannot fetch session ID');
         }
-      } catch (error) {
-        console.error('Error fetching game session:', error);
-        message.error('Không thể lấy thông tin phiên trò chơi!');
-      }
-    };
-
-    fetchGameSession();
+      })
+      .catch(() => message.error('Cannot fetch session ID'));
   }, [gamePin]);
 
   useEffect(() => {
-    if (sessionId) {
-      const intervalId = setInterval(() => {
-        fetchPlayers(sessionId);  // Fetch players every 5 seconds
-      }, 5000);
-  
-      return () => clearInterval(intervalId);  // Cleanup the interval
-    }
-  }, [sessionId]);
-  
-  // Fetch players function with player comparison
-  const fetchPlayers = async (sessionId) => {
-    if (!sessionId) return;
-  
-    try {
-      const response = await axios.get(`https://localhost:7153/api/player/GetPlayersBySession/${sessionId}`);
-  
-      if (response.data?.statusCode === 200) {
-        const fetchedPlayers = response.data.data;
-  
-        if (!isFirstLoad) {
-          
-          const newPlayers = fetchedPlayers.filter(player =>
-            !prevPlayersRef.current.some(prevPlayer => prevPlayer.playerId === player.playerId)
-          );
-          if (newPlayers.length > 0) {
-            setNewPlayer(newPlayers[0]);  // Set the new player for modal
-            setIsModalVisible(true);  // Show the modal for new player
-  
-            // Optionally show a toast notification
-            message.success(`New player joined: ${newPlayers[0].nickname}`);
+    if (!gamePin || !nickname) return;
+
+    const connection = new HubConnectionBuilder()
+      .withUrl('https://localhost:7153/gameSessionHub', {
+        skipNegotiation: true,
+        transport: HttpTransportType.WebSockets,
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    // khi server emit GameStarted
+    connection.on('GameStarted', async startedSessionId => {
+      try {
+        const res = await axios.get(
+          `https://localhost:7153/api/game-sessions/${startedSessionId}/questions-in-game`
+        );
+        if (res.data?.statusCode === 200) {
+          const first = res.data.data.find(q => q.orderIndex === 1);
+          if (first) {
+            navigate(`/QuestionPage/${startedSessionId}/${first.questionInGameId}`);
+          } else {
+            message.error('No first question found!');
           }
+        } else {
+          message.error('Cannot fetch questions!');
         }
-  
-        // Update players state and store current player list in the ref for next comparison
-        setPlayers(fetchedPlayers);
-        prevPlayersRef.current = fetchedPlayers;  // Save the current players for next comparison
-  
-        // After the first load, we don't need to check again for the first load
-        if (isFirstLoad) {
-          setIsFirstLoad(false);  // Set isFirstLoad to false after first fetch
-        }
-      } else {
-        message.error('Không thể tải danh sách người chơi!');
+      } catch {
+        message.error('Failed to fetch first question.');
       }
-    } catch (error) {
-      console.error('Error fetching players:', error);
-      message.error('Không thể tải danh sách người chơi!');
-    }
-  };
-  
+    });
 
+    // reconnect xong thì re-join
+    connection.onreconnected(async () => {
+      if (hasJoinedRef.current) {
+        try {
+          await connection.invoke('JoinGameSession', gamePin, nickname);
+          console.log('Re-joined after reconnect');
+        } catch (e) {
+          console.error('Re-join failed', e);
+        }
+      }
+    });
+
+    // bắt lỗi từ server
+    connection.on('Error', err => message.error(err));
+
+   
+    connection.on('JoinedGame', (data) => {
+      console.log('Joined game successfully:', data);
+      localStorage.setItem('playerId', data.playerId);
+    });
+
+    // khởi động và join
+    const startAndJoin = async () => {
+      try {
+        await connection.start();
+        console.log('SignalR connected');
+        await connection.invoke('JoinGameSession', gamePin, nickname);
+        hasJoinedRef.current = true;
+        console.log('JoinedGameSession');
+      } catch (e) {
+        console.error('Start/Join error', e);
+        message.error('Cannot connect or join game');
+      }
+    };
+
+    startAndJoin();
+    connectionRef.current = connection;
+
+    return () => {
+      connection.stop();
+    };
+  }, [gamePin, nickname, navigate]);
+  // 3) Poll players mỗi 3s
   useEffect(() => {
-    if (sessionId) {
-      const connection = createConnection(sessionId);
-      connection.start().then(() => {
-        connection.on("GameStarted", async (sessionId) => {
-          try {
-            const res = await axios.get(`https://localhost:7153/api/question-in-game/GetQuestionsInGameBySessionId/${sessionId}`);
-            
-            if (res.data?.statusCode === 200) {
-              const questions = res.data.data;
-              const firstQuestion = questions.find(q => q.orderIndex === 1);
-              
-              if (firstQuestion) {
-                navigate(`/QuestionPage/${sessionId}/${firstQuestion.questionId}`);
-              } else {
-                message.error('Không tìm thấy câu hỏi đầu tiên!');
-              }
-            } else {
-              message.error('Không thể lấy câu hỏi!');
-            }
-          } catch (err) {
-            console.error('Lỗi khi load câu hỏi đầu tiên:', err);
-            message.error('Lỗi khi bắt đầu câu hỏi!');
+    if (!sessionId) return;
+    const fetchPlayers = async () => {
+      try {
+        const res = await axios.get(
+          `https://localhost:7153/api/sessions/${sessionId}/players`
+        );
+        if (res.data?.statusCode === 200) {
+          const list = res.data.data;
+          const newbies = list.filter(p =>
+            !prevPlayersRef.current.some(x => x.playerId === p.playerId)
+          );
+          if (newbies.length) {
+            setNewPlayer(newbies[0]);
+            setIsModalVisible(true);
+            message.success(`New player joined: ${newbies[0].nickname}`);
           }
-        });
-      });
-  
-      return () => {
-        connection.stop();
-      };
-    }
-  }, [sessionId, navigate]);
-  
+          setPlayers(list);
+          prevPlayersRef.current = list;
+        }
+      } catch (err) {
+        console.error('Error fetching players', err);
+      }
+    };
 
-  // Handle modal actions
-  const handleModalOk = () => {
-    setIsModalVisible(false);
-  };
-
-  const handleModalCancel = () => {
-    setIsModalVisible(false);
-  };
+    fetchPlayers();
+    const id = setInterval(fetchPlayers, 3000);
+    return () => clearInterval(id);
+  }, [sessionId]);
 
   return (
     <div className="lobby-container">
@@ -150,31 +151,29 @@ const Lobby = () => {
       <div className="title-bar">
         <h1 className="logo">QUIZZZZ!</h1>
       </div>
-
       <div className="player-list">
         {players.length > 0 ? (
           <List
-            grid={{ gutter: 1700, column: 8 }} 
+            grid={{ gutter: 1600, column: 8 }}
             dataSource={players}
-            renderItem={(player) => (
-              <List.Item key={player.playerId}>
+            renderItem={p => (
+              <List.Item key={p.playerId}>
                 <Card className="player-card">
-                  <span className="nickname">{player.nickname}</span>
+                  <span className="nickname">{p.nickname}</span>
                 </Card>
               </List.Item>
             )}
           />
         ) : (
-          <p>No players yet!</p> // Message if no players
+          <p>No players yet!</p>
         )}
       </div>
 
-      {/* New Player Modal */}
       <Modal
         title="New Player Joined"
-        visible={isModalVisible}
-        onOk={handleModalOk}
-        onCancel={handleModalCancel}
+        open={isModalVisible}
+        onOk={() => setIsModalVisible(false)}
+        onCancel={() => setIsModalVisible(false)}
       >
         <p>New player joined: {newPlayer?.nickname}</p>
       </Modal>
