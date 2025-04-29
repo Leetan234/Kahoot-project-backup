@@ -1,0 +1,48 @@
+.custom-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .custom-modal {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .custom-modal-header h3 {
+    margin: 0;
+  }
+  
+  .custom-modal-body p {
+    margin: 20px 0;
+  }
+  
+  .custom-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .custom-modal-footer button {
+    margin-left: 10px;
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .custom-modal-footer button:hover {
+    background-color: #0056b3;
+  }
+  

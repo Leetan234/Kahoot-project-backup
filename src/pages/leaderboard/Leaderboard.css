@@ -1,60 +1,68 @@
 .leaderboard-wrapper {
-    background: linear-gradient(135deg, #4b0dbf 0%, #350089 100%);
-    height: 100vh;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-    box-sizing: border-box;
-  }
-  
-  .leaderboard-title {
-    color: #fff;
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  
-  .leader-item {
-    background-color: #fff;
-    margin-bottom: 15px;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* thêm bóng đổ */
-    transition: background-color 0.3s ease, transform 0.3s ease; /* hiệu ứng hover */
-  }
-  
-  .leader-item:hover {
-    background-color: #f4f4f4;
-    transform: translateY(-5px); /* hiệu ứng nâng lên khi hover */
-  }
-  
-  .leader-rank {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 10px;
-  }
+  background: linear-gradient(135deg, #4b0dbf 0%, #350089 100%);
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* Align to the top of the container */
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
 
-  .leader-info {
-    display: flex;
-    flex-direction: row; /* Để các phần tử nằm ngang */
-    justify-content: space-between; /* Canh giữa các phần tử */
-    align-items: center; /* Căn giữa theo chiều dọc */
-    width: 100%;
-    padding: 10px;
-  }
-  
-  .leader-name {
-    font-size: 18px;
-    color: #333;
-  }
-  
-  .leader-score {
-    font-size: 18px;
-    color: #333;
-    font-weight: bold;
-    padding-left: 10px; /* Thêm khoảng cách giữa tên và điểm */
-  }
-  
-  
+.leaderboard-title {
+  color: #fff;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.leader-item {
+  background-color: #fff;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  padding: 18px;
+  width: calc(100% + 200px);
+  max-width: 800px; /* Add a max width to prevent the item from being too wide */
+}
+
+.leader-item:hover {
+  background-color: #f4f4f4;
+  transform: translateY(-5px);
+}
+
+.leader-rank {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+}
+
+.leader-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 10px;
+}
+
+.leader-name {
+  font-size: 18px;
+  color: #333;
+}
+
+.leader-score {
+  font-size: 18px;
+  color: #333;
+  font-weight: bold;
+  padding-left: 10px;
+}
+
+/* Ensure the list is centered and does not exceed the max width */
+.ant-list-items {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}

@@ -22,7 +22,7 @@ const AppRouter = () => {
                 <Route path="/host/:gamePin" element={<Host />} />
                 <Route path="/QuestionPage/:sessionId/:questionInGameId" element={<QuestionPage />} />
                 <Route path="/HostQuestionPage/:sessionId/:QuestionInGameID" element={<HostQuestionPage />} />
-                <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="/leaderboard/:sessionId" element={<Leaderboard />} />
                 <Route path="/register/username" element={<RegisterPage />} />
                 <Route path="/register/signup-options" element={<EmailRegisterPage />} />
             </Routes>

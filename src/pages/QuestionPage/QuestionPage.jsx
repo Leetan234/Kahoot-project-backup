@@ -8,7 +8,7 @@ import {
 } from '@ant-design/icons';
 import { HubConnectionBuilder, HttpTransportType, LogLevel } from '@microsoft/signalr';
 import axios from 'axios';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import './QuestionPage.css';
 
 const { Title } = Typography;
@@ -24,6 +24,7 @@ const QuestionPage = () => {
     const [shakeWrong, setShakeWrong] = useState(false);
     const connectionRef = useRef(null);
     const playerId = localStorage.getItem('playerId');
+    const navigate = useNavigate(); 
 
     // Force reload once to avoid stale state
     useEffect(() => {
@@ -72,6 +73,7 @@ const QuestionPage = () => {
         }
     }, [timeLeft]);
 
+    // Fetch number of submitted answers every 1 secon
     // Submit answer
     const handleAnswer = async (optionIndex) => {
         if (!connectionRef.current || !playerId || !questionInGameId) {
@@ -105,6 +107,32 @@ const QuestionPage = () => {
             message.error('Failed to submit answer');
         }
     };
+    
+    useEffect(() => {
+        const fetchResponseCount = async () => {
+            try {
+                const response = await axios.get(
+                    `https://localhost:7153/api/questions/questions-in-game/${questionInGameId}/responses`
+                );
+                if (response.data && response.data.data) {
+                    const count = response.data.data.length; // Count responses
+                    setAnswersCount(count); // Update answer count
+                }
+            } catch (error) {
+                console.error('Error fetching responses:', error);
+                message.error('Failed to fetch responses');
+            }
+        };
+
+        // Fetch response count immediately after loading
+        fetchResponseCount();
+
+        // Set interval to fetch response count every second
+        const intervalId = setInterval(fetchResponseCount, 1000);
+
+        // Clear interval when component unmounts
+        return () => clearInterval(intervalId);
+    }, [questionInGameId]);
 
     // SignalR connection
     useEffect(() => {
@@ -118,17 +146,19 @@ const QuestionPage = () => {
                 .withAutomaticReconnect()
                 .build();
     
-            // Lắng nghe sự kiện ResponseCountUpdated
-            connection.on('ResponseCountUpdated', (data) => {
-                console.log('ResponseCountUpdated event received:', data);  // Log dữ liệu nhận được từ server
-                if (data && typeof data.ResponseCount === 'number') {
-                    setAnswersCount(data.ResponseCount);
-                    console.log(`Log: ${data.ResponseCount} players have answered so far.`);
-                } else {
-                    console.error("Invalid data format for ResponseCountUpdated:", data);
-                }
+            // Bắt sự kiện host NextQuestion gửi xuống
+            connection.on('ReceiveQuestion', data => {
+                console.log('Received new question:', data);
+                window.location.href = `/QuestionPage/${sessionId}/${data.questionInGameId}`;
             });
+
+
+            connection.on('GameEnded', data => {
+                window.location.href = `/`;
+            });
+
     
+            // Bắt feedback khi submit xong
             connection.on('ResponseSubmitted', (data) => {
                 message.success(data.isCorrect ? 'Correct Answer!' : 'Wrong Answer!');
                 if (data.isCorrect) {
@@ -136,11 +166,7 @@ const QuestionPage = () => {
                 } else {
                     setFeedbackColor('#e74c3c');
                     setShakeWrong(true);
-                }
-                setTimeout(() => {
-                    setFeedbackColor(null);
-                    setShakeWrong(false);
-                }, 1000);
+                }                
             });
     
             connection.on('Error', (errorMsg) => {
@@ -152,8 +178,9 @@ const QuestionPage = () => {
                 await connection.start();
                 connectionRef.current = connection;
                 console.log('Connected to SignalR');
-                // Gọi phương thức để lấy số lượng câu trả lời ban đầu
-                connection.invoke('GetResponseCount', parseInt(sessionId)).catch((err) => console.error('Init count error:', err));
+    
+                // Lấy số lượt trả lời ban đầu
+                await connection.invoke('GetResponseCount', parseInt(sessionId, 10));
             } catch (error) {
                 console.error('Connection failed:', error);
             }
@@ -164,9 +191,12 @@ const QuestionPage = () => {
         }
     
         return () => {
-            if (connectionRef.current) connectionRef.current.stop();
+            if (connectionRef.current) {
+                connectionRef.current.stop();
+                console.log('SignalR connection stopped');
+            }
         };
-    }, [sessionId]);
+    }, [sessionId, navigate]);
     
     
     if (!questionData) {
