@@ -11,6 +11,7 @@ const EnterroomPage = () => {
   const [nickname, setNickname] = useState('');
   const [isNameModalVisible, setIsNameModalVisible] = useState(false);
   const [sessionId, setSessionId] = useState(null);
+  const [gameMode, setGameMode] = useState('solo'); // default fallback
   const navigate = useNavigate();
 
   const handleEnter = async () => {
@@ -20,12 +21,15 @@ const EnterroomPage = () => {
     }
 
     try {
-      const response = await axios.get(`https://localhost:7153/api/gamesession/GetGameSessionWithPin/${gamePin}`);
+      const response = await axios.get(
+        `https://localhost:7153/api/gamesession/GetGameSessionWithPin/${gamePin}`
+      );
 
       if (response.data?.statusCode === 200 && response.data?.data) {
-        const { sessionId: fetchedSessionId } = response.data.data;
+        const { sessionId: fetchedSessionId, gameMode: fetchedMode } = response.data.data;
         setSessionId(fetchedSessionId);
-        setIsNameModalVisible(true); // 👉 Mở modal NGAY sau khi lấy session thành công
+        setGameMode(fetchedMode);
+        setIsNameModalVisible(true);
       } else {
         message.error('Không tìm thấy game với PIN này!');
       }
@@ -47,7 +51,12 @@ const EnterroomPage = () => {
     }
 
     setIsNameModalVisible(false);
-    navigate(`/lobby/${gamePin}`, { state: { gamePin, nickname } });
+    // Navigate based on gameMode
+    if (gameMode === 'solo') {
+      navigate(`/lobby/${gamePin}`, { state: { gamePin, nickname, sessionId } });
+    } else {
+      navigate(`/teamlobby/${gamePin}`, { state: { gamePin, nickname, sessionId } });
+    }
   };
 
   const handleNameModalCancel = () => {
@@ -83,7 +92,7 @@ const EnterroomPage = () => {
 
       <Modal
         title="Nhập Tên Người Chơi"
-        open={isNameModalVisible} // 🛠 dùng `open` thay vì `visible`
+        open={isNameModalVisible}
         onOk={handleNameModalOk}
         onCancel={handleNameModalCancel}
         okText="Tham gia"

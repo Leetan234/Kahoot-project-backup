@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { List, Card, message, Modal } from 'antd';
+import { Layout, Row, Col, Card, Avatar, Button, message, Modal } from 'antd';
 import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../Lobby/Lobby.css';
+
+const { Content } = Layout;
 
 const Lobby = () => {
   const { state } = useLocation();
@@ -34,6 +36,7 @@ const Lobby = () => {
       .catch(() => message.error('Cannot fetch session ID'));
   }, [gamePin]);
 
+  // 2) SignalR setup
   useEffect(() => {
     if (!gamePin || !nickname) return;
 
@@ -45,7 +48,6 @@ const Lobby = () => {
       .withAutomaticReconnect()
       .build();
 
-    // khi server emit GameStarted
     connection.on('GameStarted', async startedSessionId => {
       try {
         const res = await axios.get(
@@ -66,37 +68,27 @@ const Lobby = () => {
       }
     });
 
-    // reconnect xong thì re-join
     connection.onreconnected(async () => {
       if (hasJoinedRef.current) {
         try {
           await connection.invoke('JoinGameSession', gamePin, nickname);
-          console.log('Re-joined after reconnect');
         } catch (e) {
           console.error('Re-join failed', e);
         }
       }
     });
 
-    // bắt lỗi từ server
     connection.on('Error', err => message.error(err));
-
-   
-    connection.on('JoinedGame', (data) => {
-      console.log('Joined game successfully:', data);
+    connection.on('JoinedGame', data => {
       localStorage.setItem('playerId', data.playerId);
     });
 
-    // khởi động và join
     const startAndJoin = async () => {
       try {
         await connection.start();
-        console.log('SignalR connected');
         await connection.invoke('JoinGameSession', gamePin, nickname);
         hasJoinedRef.current = true;
-        console.log('JoinedGameSession');
       } catch (e) {
-        console.error('Start/Join error', e);
         message.error('Cannot connect or join game');
       }
     };
@@ -104,11 +96,10 @@ const Lobby = () => {
     startAndJoin();
     connectionRef.current = connection;
 
-    return () => {
-      connection.stop();
-    };
+    return () => connection.stop();
   }, [gamePin, nickname, navigate]);
-  // 3) Poll players mỗi 3s
+
+  // 3) Poll players
   useEffect(() => {
     if (!sessionId) return;
     const fetchPlayers = async () => {
@@ -140,35 +131,48 @@ const Lobby = () => {
   }, [sessionId]);
 
   return (
-    <div className="lobby-container">
-      <div className="header-container">
+    <Layout style={{ height: '100vh', background: '#864cbf' }}>
+      {/* Header */}
+      <div className="header-container" style={{ padding: '16px', background: '#864cbf' }}>
         <div className="pin-header">
-          <span className="pin-text">
+          <span className="pin-text" style={{ color: '#000', fontSize: '16px' }}>
             Join at <b>www.kahoot.it</b> with Game PIN: <b>{gamePin}</b>
           </span>
         </div>
       </div>
-      <div className="title-bar">
-        <h1 className="logo">QUIZZZZ!</h1>
-      </div>
-      <div className="player-list">
-        {players.length > 0 ? (
-          <List
-            grid={{ gutter: 1600, column: 8 }}
-            dataSource={players}
-            renderItem={p => (
-              <List.Item key={p.playerId}>
-                <Card className="player-card">
-                  <span className="nickname">{p.nickname}</span>
-                </Card>
-              </List.Item>
-            )}
-          />
-        ) : (
-          <p>No players yet!</p>
-        )}
+      {/* Title */}
+      <div className="title-bar" style={{ textAlign: 'center', padding: '8px 0', background: '#864cbf' }}>
+        <h1 className="logo" style={{ color: 'White', margin: 0 }}>QUIZZZZ!</h1>
       </div>
 
+      <Content style={{ padding: '24px' }}>
+        <Row justify="end" style={{ marginBottom: 16 }}>
+          <Button type="primary" style={{ visibility: 'hidden' }} />
+        </Row>
+
+        {/* Player Grid */}
+        <Row gutter={[16, 16]}>
+          {players.map(p => (
+            <Col key={p.playerId} xs={12} sm={8} md={6} lg={4}>
+              <Card style={{ textAlign: 'center', background: 'rgba(255, 255, 255, 0.1)' }}>
+                <Avatar size={64} style={{ backgroundColor: '#95A5A6', verticalAlign: 'middle' }}>
+                  {p.nickname.charAt(0).toUpperCase()}
+                </Avatar>
+                <div style={{ marginTop: 12, color: '#000' }}>
+                  {p.nickname}
+                </div>
+              </Card>
+            </Col>
+          ))}
+          {!players.length && (
+            <Col span={24} style={{ textAlign: 'center', color: '#000' }}>
+              No players yet!
+            </Col>
+          )}
+        </Row>
+      </Content>
+
+      {/* New Player Modal */}
       <Modal
         title="New Player Joined"
         open={isModalVisible}
@@ -177,7 +181,7 @@ const Lobby = () => {
       >
         <p>New player joined: {newPlayer?.nickname}</p>
       </Modal>
-    </div>
+    </Layout>
   );
 };
 

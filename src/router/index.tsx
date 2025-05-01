@@ -9,6 +9,8 @@ import QuestionPage from "../pages/QuestionPage/QuestionPage";
 import Host from "../pages/Host/Host";
 import HostQuestionPage from "../pages/HostQuestion/HostQuestionPage";
 import Leaderboard from "../pages/leaderboard/leaderboard";
+import TeamLobbyPage from "../pages/Teamlobby/Teamlobby";
+import TeamLobbyHostPage from "../pages/TeamlobbyHost/TeamlobbyHost";
 
 const AppRouter = () => {
     return (
@@ -25,6 +27,8 @@ const AppRouter = () => {
                 <Route path="/leaderboard/:sessionId" element={<Leaderboard />} />
                 <Route path="/register/username" element={<RegisterPage />} />
                 <Route path="/register/signup-options" element={<EmailRegisterPage />} />
+                <Route path="/teamlobby/:gamePin" element={<TeamLobbyPage />} />
+                <Route path="/teamlobbyhost/:gamePin" element={<TeamLobbyHostPage/>} />
             </Routes>
         </Router>
     );
