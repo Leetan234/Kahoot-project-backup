@@ -176,16 +176,16 @@ const TeamLobbyPage = () => {
 
   return (
     <Layout style={{ height: '100vh', background: '#864cbf' }}>
-      {/* Header */}
-      <div style={{ padding: 16, background: '#864cbf' }}>
-        <span style={{ color: '#000', fontSize: 16 }}>
-          Join at <b>www.kahoot.it</b> with Game PIN: <b>{gamePin}</b>
-        </span>
+       <div className="header-container" style={{ padding: '16px', background: '#864cbf' }}>
+        <div className="pin-header">
+          <span className="pin-text" style={{ color: '#000', fontSize: '16px' }}>
+            Join at <b>www.kahoot.it</b> with Game PIN: <b>{gamePin}</b>
+          </span>
+        </div>
       </div>
-
       {/* Title */}
-      <div style={{ textAlign: 'center', padding: 8, background: '#864cbf' }}>
-        <h1 style={{ color: '#fff', margin: 0 }}>QUIZZZZ!</h1>
+      <div className="title-bar" style={{ textAlign: 'center', padding: '8px 0', background: '#864cbf' }}>
+        <h1 className="logo" style={{ color: 'White', margin: 0 }}>QUIZZZZ!</h1>
       </div>
 
       <Content style={{ padding: 24 }}>

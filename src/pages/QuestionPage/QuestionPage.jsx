@@ -24,7 +24,7 @@ const QuestionPage = () => {
     const [shakeWrong, setShakeWrong] = useState(false);
     const connectionRef = useRef(null);
     const playerId = localStorage.getItem('playerId');
-    const navigate = useNavigate(); 
+    const navigate = useNavigate();
 
     // Force reload once to avoid stale state
     useEffect(() => {
@@ -107,7 +107,7 @@ const QuestionPage = () => {
             message.error('Failed to submit answer');
         }
     };
-    
+
     useEffect(() => {
         const fetchResponseCount = async () => {
             try {
@@ -145,7 +145,7 @@ const QuestionPage = () => {
                 .configureLogging(LogLevel.Information)
                 .withAutomaticReconnect()
                 .build();
-    
+
             // Bắt sự kiện host NextQuestion gửi xuống
             connection.on('ReceiveQuestion', data => {
                 console.log('Received new question:', data);
@@ -157,7 +157,7 @@ const QuestionPage = () => {
                 window.location.href = `/`;
             });
 
-    
+
             // Bắt feedback khi submit xong
             connection.on('ResponseSubmitted', (data) => {
                 message.success(data.isCorrect ? 'Correct Answer!' : 'Wrong Answer!');
@@ -166,30 +166,30 @@ const QuestionPage = () => {
                 } else {
                     setFeedbackColor('#e74c3c');
                     setShakeWrong(true);
-                }                
+                }
             });
-    
+
             connection.on('Error', (errorMsg) => {
                 console.error('Server error:', errorMsg);
                 message.error(errorMsg);
             });
-    
+
             try {
                 await connection.start();
                 connectionRef.current = connection;
                 console.log('Connected to SignalR');
-    
+
                 // Lấy số lượt trả lời ban đầu
                 await connection.invoke('GetResponseCount', parseInt(sessionId, 10));
             } catch (error) {
                 console.error('Connection failed:', error);
             }
         };
-    
+
         if (sessionId) {
             connectToHub();
         }
-    
+
         return () => {
             if (connectionRef.current) {
                 connectionRef.current.stop();
@@ -197,8 +197,8 @@ const QuestionPage = () => {
             }
         };
     }, [sessionId, navigate]);
-    
-    
+
+
     if (!questionData) {
         return <div>Loading...</div>;
     }
@@ -219,31 +219,36 @@ const QuestionPage = () => {
             }}
         >
             <div className="question-header">
-                <div className="timer-circle">
-                    <span>{timeLeft}</span>
-                </div>
+
                 <div className="question-image">
                     {questionData.imageUrl?.trim() && (
                         <img
                             src={questionData.imageUrl}
                             alt="question"
-                            style={{ maxWidth: '100%', maxHeight: '200px' }}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                     )}
                 </div>
-                <div className="answer-count">
-                    <Title level={4}>{answersCount}</Title>
-                    <span>Answers</span>
-                </div>
+
                 <div className="question-header-bar">
-                    <Title level={2} className="question-text">
+                    <div className="timer-circle">
+                        <span>{timeLeft}</span>
+                    </div>
+                    <Title level={1} className="question-text">
                         {questionData.text}
                     </Title>
+                    <div className="answer-count">
+                        <Title level={4}>{answersCount}/20</Title>
+                        <span>Answers</span>
+                        
+                    </div>
                 </div>
+
+
             </div>
             <Row gutter={[50, 16]} className="answer-options">
                 {options.map((text, idx) => (
-                    <Col xs={24} sm={10} key={idx}>
+                    <Col xs={24} sm={12} key={idx}>
                         <Button
                             className="answer-button"
                             style={{
@@ -255,7 +260,7 @@ const QuestionPage = () => {
                                             ? 1
                                             : 0.5,
                                 border: selectedOption === idx ? '3px solid #fff' : undefined,
-                                transform: selectedOption === idx ? 'scale(1.1)' : 'scale(1)',
+                                transform: selectedOption === idx ? 'scale(1)' : 'scale(1)',
                                 transition: 'all 0.3s ease',
                             }}
                             block
